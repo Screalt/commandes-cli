@@ -28,3 +28,17 @@ Client CLI Python pour récupérer, afficher et imprimer automatiquement vos com
 Installez le package directement depuis GitHub :
 
 pip3 install git+https://github.com/VOTRE_COMPTE/commandes-cli.git
+
+IMAP_SERVER=imap.votre-fournisseur.com
+IMAP_PORT=993
+EMAIL_ADDRESS=votre.email@example.com
+EMAIL_PASS=VotreMotDePasseApp
+PRINTER_NAME=NomDeVotreImprimante
+POLL_INTERVAL=60
+
+
+## 🛠️ Usage
+
+Lancez simplement :
+
+commandes-cli
