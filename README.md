@@ -42,3 +42,30 @@ POLL_INTERVAL=60
 Lancez simplement :
 
 commandes-cli
+
+    Paramétrer
+    Saisissez ou modifiez vos variables IMAP / imprimante / intervalle.
+
+    Démarrer le service
+    Le script se connecte en boucle à IMAP, affiche chaque nouvelle commande,
+    imprime via CUPS et marque les mails comme lus.
+
+    Quitter
+    Appuyez sur Ctrl+C ou choisissez l’option Quitter dans le menu.
+
+🔄 Mise à jour
+
+Pour passer à la dernière version, relancez :
+
+pip3 install --upgrade git+https://github.com/VOTRE_COMPTE/commandes-cli.git
+
+
+📄 Licence
+
+© 2025 Screalt
+Distribué sous la MIT License – voir LICENSE pour plus de détails.
+🙏 Crédits
+
+Si vous utilisez ce projet, merci de me créditer en mentionnant ce dépôt GitHub :
+
+https://github.com/Screalt/commandes-cli
