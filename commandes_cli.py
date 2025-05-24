@@ -11,6 +11,7 @@ import subprocess
 import traceback
 from datetime import datetime
 
+
 CONFIG_PATH = "config.json"
 ORDERS_PATH = "orders.json"
 
