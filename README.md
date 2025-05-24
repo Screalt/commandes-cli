@@ -22,7 +22,7 @@ Client CLI Python pour récupérer, afficher et imprimer automatiquement vos com
 1. Installez Python 3, Tkinter et CUPS :
  ```bash
  sudo apt update
- sudo apt install -y python3-pip python3-tk cups python3-cups
+ sudo apt install -y python3-pip python3-tk cups python3-cups```
 
 
 Installez le package directement depuis GitHub :
