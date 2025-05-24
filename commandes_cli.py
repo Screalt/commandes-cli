@@ -8,6 +8,7 @@ import imaplib
 import email
 import tempfile
 import subprocess
+import traceback
 from datetime import datetime
 
 CONFIG_PATH = "config.json"
@@ -33,7 +34,7 @@ class OrdersManager:
             with open(self.path, "w", encoding="utf-8") as f:
                 json.dump(self.orders, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            print("Erreur sauvegarde orders:", e)
+            print(f"[{datetime.now().isoformat()}] Erreur sauvegarde orders:", e)
 
     def add_or_update(self, order):
         num = order["numero_commande"]
@@ -57,7 +58,7 @@ def save_config(config):
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
     except Exception as e:
-        print("Erreur sauvegarde config:", e)
+        print(f"[{datetime.now().isoformat()}] Erreur sauvegarde config:", e)
 
 # --- Parsing commandes ---
 def parse_order(text):
@@ -87,7 +88,7 @@ def parse_order(text):
 def imprimer_commande(order, printer_name=None):
     text = order.get("formatted_text", "")
     if not text:
-        print("Aucun texte à imprimer.")
+        print(f"[{datetime.now().isoformat()}] Aucun texte à imprimer.")
         return
     with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="w", encoding="utf-8") as tmp:
         tmp.write(text)
@@ -98,8 +99,9 @@ def imprimer_commande(order, printer_name=None):
     cmd.append(fn)
     try:
         subprocess.run(cmd, check=True)
+        print(f"[{datetime.now().isoformat()}] Impression envoyée à « {printer_name or 'défaut'} ».")
     except subprocess.CalledProcessError as e:
-        print(f"Erreur impression : {e}")
+        print(f"[{datetime.now().isoformat()}] Erreur impression :", e)
 
 # --- Polling IMAP ---
 class EmailPoller(threading.Thread):
@@ -110,23 +112,34 @@ class EmailPoller(threading.Thread):
         self._stop = threading.Event()
 
     def run(self):
+        print(f"[{datetime.now().isoformat()}] Polling IMAP démarré.")
         while not self._stop.is_set():
             c = self.config
-            # On vérifie qu'on a bien les infos de base
+            # Vérifie qu'on a les infos indispensables
             if all(c.get(k) for k in ("imap_server","imap_port","email_address","email_password")):
                 try:
+                    print(f"[{datetime.now().isoformat()}] Connexion à {c['imap_server']}:{c['imap_port']}…")
                     M = imaplib.IMAP4_SSL(c["imap_server"], int(c["imap_port"]))
                     M.login(c["email_address"], c["email_password"])
+                    print(f"[{datetime.now().isoformat()}] Connexion IMAP réussie.")
                     M.select("INBOX")
+
                     # Critères de recherche
                     crit = ["UNSEEN"]
                     if c.get("filter_sender"):
                         crit += ["FROM", f'"{c["filter_sender"]}"']
                     if c.get("filter_subject"):
                         crit += ["SUBJECT", f'"{c["filter_subject"]}"']
+                    print(f"[{datetime.now().isoformat()}] Recherche mails avec critères : {crit}")
                     typ, data = M.search(None, *crit)
-                    if typ == "OK":
-                        for num in data[0].split():
+                    if typ != "OK":
+                        print(f"[{datetime.now().isoformat()}] Recherche IMAP a échoué : {typ}")
+                    else:
+                        ids = data[0].split()
+                        if not ids:
+                            print(f"[{datetime.now().isoformat()}] Aucun nouveau mail.")
+                        for num in ids:
+                            print(f"[{datetime.now().isoformat()}] Nouveau mail ID {num.decode()}.")
                             _, md = M.fetch(num, "(RFC822)")
                             msg = email.message_from_bytes(md[0][1])
                             raw = ""
@@ -144,11 +157,17 @@ class EmailPoller(threading.Thread):
                                 print("---------------------------")
                                 print(parsed["formatted_text"])
                                 imprimer_commande(parsed, printer_name=c.get("printer_name"))
+                            else:
+                                print(f"[{datetime.now().isoformat()}] Mail ignoré (pas de numéro de commande trouvé).")
                             M.store(num, "+FLAGS", "\\Seen")
                     M.logout()
                 except Exception as e:
-                    print("IMAP error:", e)
+                    print(f"[{datetime.now().isoformat()}] IMAP error:")
+                    traceback.print_exc()
+            else:
+                print(f"[{datetime.now().isoformat()}] Configuration IMAP incomplète : {c}")
             time.sleep(int(c.get("poll_interval", 60)))
+        print(f"[{datetime.now().isoformat()}] Polling IMAP arrêté.")
 
     def stop(self):
         self._stop.set()
@@ -163,7 +182,7 @@ def cli_menu():
         print("1) Paramétrer")
         print("2) Lancer le service")
         print("3) Quitter")
-        choice = input("Votre choix: ").strip()
+        choice = input("Votre choix : ").strip()
 
         if choice == '1':
             for key in ("imap_server","imap_port","email_address","email_password",
@@ -173,20 +192,20 @@ def cli_menu():
                 if val:
                     config[key] = val
             save_config(config)
-            print("Configuration enregistrée.")
+            print(f"[{datetime.now().isoformat()}] Configuration enregistrée.")
         elif choice == '2':
-            print("Démarrage du polling IMAP... (Ctrl+C pour arrêter)")
+            print(f"[{datetime.now().isoformat()}] Démarrage du service… (Ctrl+C pour arrêter)")
             poller = EmailPoller(config, mgr)
             poller.start()
             try:
                 while True:
                     time.sleep(1)
             except KeyboardInterrupt:
-                print("Arrêt du service...")
+                print(f"\n[{datetime.now().isoformat()}] Arrêt du service par l’utilisateur.")
                 poller.stop()
                 break
         elif choice == '3':
-            print("Bye !")
+            print(f"[{datetime.now().isoformat()}] Au revoir !")
             break
         else:
             print("Choix invalide.")
