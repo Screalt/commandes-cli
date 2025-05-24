@@ -171,4 +171,10 @@ cython_debug/
 .ruff_cache/
 
 # PyPI configuration file
+
+# Config sensibles
+.env
+config.json
+orders.json
+
 .pypirc
